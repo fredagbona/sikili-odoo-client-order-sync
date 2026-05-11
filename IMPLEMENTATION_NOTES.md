@@ -134,6 +134,12 @@ To keep the project simple, the app can search for a product by name or create o
 
 This avoids building a full product catalog UI while still respecting Odoo’s data model.
 
+### Addons directory and `/mnt/extra-addons`
+
+The assessment required mounting an **addons** directory into **`/mnt/extra-addons`**.
+
+No custom Odoo module was necessary for the requested scope, but the **`addons/`** folder is included (with **`.gitkeep`** so it stays in version control when empty) and **Docker Compose** bind-mounts **`./addons:/mnt/extra-addons`** so the setup respects Odoo’s extensibility expectations and reviewers can drop custom modules there if needed.
+
 ---
 
 ## 4. Synchronization Strategy
