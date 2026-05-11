@@ -1,37 +1,109 @@
-# AI Usage
+# AI Usage Documentation
 
-AI tools were used during this assessment.
+This file documents how AI tools were used during the assessment.
 
-## How AI Was Used
+The objective was not to blindly generate code, but to accelerate implementation while keeping architecture, technical decisions, and engineering ownership fully manual.
 
-AI was used to help with:
+---
 
-- clarifying the assessment requirements
-- planning the architecture
-- drafting implementation specs
-- exploring Odoo JSON-RPC integration patterns
-- reviewing README structure
-- identifying potential edge cases
+# Engineering Ownership
 
-## What Was Decided Manually
+The following parts were designed and decided manually before implementation:
 
-The following decisions were reviewed and made manually:
+* global architecture choices
+* monorepo structure
+* backend/frontend separation
+* Odoo integration strategy
+* Docker and local environment setup
+* project organization
+* coding conventions
+* error handling philosophy
+* sync strategy
+* feature decomposition
+* specifications and definition of done
+* commit strategy
+* AI workflow rules
+* reviewer experience considerations
 
-- using a monorepo for reviewer experience
-- isolating Odoo calls in a service layer
-- storing Odoo references locally
-- tracking sync status locally
-- using simple UI to avoid over-engineering
-- documenting trade-offs clearly
+The project structure, workflow, and implementation constraints were intentionally defined upfront before asking AI to generate code.
 
-## Validation Approach
+---
 
-AI suggestions are not accepted blindly.
+# How AI Was Used
 
-Implementation is validated through:
+AI tools were used as implementation assistants to:
 
-- local Docker Compose runs
-- manual end-to-end testing
-- checking records in Odoo
-- reviewing logs and sync status
-- reading and adjusting generated code
+* accelerate repetitive setup work
+* generate first-pass implementations
+* help structure boilerplate
+* review architecture decisions
+* explore Odoo JSON-RPC payloads
+* improve documentation clarity
+* identify edge cases
+* review implementation trade-offs
+* validate consistency with specifications
+
+AI was always guided using explicit project rules, specifications, and implementation constraints.
+
+---
+
+# AI Constraints and Rules
+
+Before implementation, project-specific rules and specifications were written manually to guide AI generation.
+
+The AI was instructed to:
+
+* avoid over-engineering
+* keep architecture simple and reviewable
+* isolate Odoo logic in a dedicated service layer
+* keep route handlers thin
+* preserve sync status visibility
+* avoid hidden failures
+* avoid hardcoded credentials
+* prefer explicit naming
+* produce small incremental changes
+* follow the written specifications strictly
+
+The AI was intentionally not asked to generate the entire project at once.
+
+---
+
+# Validation Process
+
+All generated code was manually:
+
+* reviewed
+* validated
+* adjusted when necessary
+* tested locally
+* compared against specifications
+
+No code was accepted without understanding the implementation and validating that it matched the project requirements.
+
+---
+
+# Development Philosophy
+
+The objective of using AI in this assessment was not to replace engineering thinking.
+
+The objective was to:
+
+* accelerate execution
+* improve iteration speed
+* reduce repetitive work
+* focus more time on architecture and correctness
+* preserve implementation quality and maintainability
+
+AI was treated as a collaborative engineering assistant, not as an autonomous code generator.
+
+---
+
+# Ongoing Updates
+
+This file may be updated during development to document:
+
+* important AI-assisted implementation decisions
+* architectural adjustments
+* manual fixes applied after generation
+* validation notes
+* trade-offs identified during implementation
