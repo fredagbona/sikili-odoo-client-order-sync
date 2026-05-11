@@ -34,6 +34,18 @@ The focus is **reviewable architecture**, **working Odoo integration**, **visibl
 
 ---
 
+## README contents (assessment checklist)
+
+This README **explicitly** includes everything typically required for submission review:
+
+1. [How to run the project locally](#how-to-run-the-project-locally)
+2. [How to connect to Odoo](#how-to-connect-to-odoo)
+3. [Odoo objects used and why](#odoo-objects-used-and-why)
+4. [Assumptions and simplifications](#assumptions-and-simplifications)
+5. [What I would improve with more time](#what-i-would-improve-with-more-time)
+
+---
+
 ## Repository map
 
 Use this table to **navigate the repo** quickly:
@@ -76,7 +88,7 @@ sikili-odoo-sync-assessment/
 
 ---
 
-## How to run the project
+## How to run the project locally
 
 ### Prerequisites
 
@@ -167,6 +179,49 @@ sikili-odoo-sync-assessment/
 
 ---
 
+## How to connect to Odoo
+
+### Spin up an Odoo instance (this repo)
+
+The easiest path is **Docker Compose** together with the rest of the stack (see [How to run the project locally](#how-to-run-the-project-locally)): the **`odoo`** service runs **Odoo 18** and **`odoo-db`** runs its PostgreSQL. No separate Odoo install is required for review.
+
+### URL (reviewer browser)
+
+| What | URL |
+| --- | --- |
+| Odoo web UI | **`http://localhost:8069`** |
+| App web UI | **`http://localhost:3000`** |
+| App API | **`http://localhost:4000`** |
+
+From **inside Docker**, the API reaches Odoo at **`http://odoo:8069`** (see `ODOO_URL` in `.env.example`). From your **host machine** (e.g. browser or PNPM dev on the host), use **`http://127.0.0.1:8069`** once port `8069` is published.
+
+### Credentials and database name (must match `.env`)
+
+The API authenticates to Odoo over JSON-RPC using the variables below. **Create the Odoo database and admin user to match** so sync succeeds:
+
+| Variable | Example value (`.env.example`) | Purpose |
+| --- | --- | --- |
+| `ODOO_URL` | `http://odoo:8069` (Compose) or `http://127.0.0.1:8069` (host API → Docker Odoo) | Base URL for JSON-RPC |
+| `ODOO_DB` | **`sikili_assessment`** | Odoo **database name** you create in the UI |
+| `ODOO_USERNAME` | **`admin`** | Odoo login |
+| `ODOO_PASSWORD` | **`admin`** | Odoo password |
+
+The Postgres **server** credentials for the `odoo-db` container (`ODOO_DB_HOST`, `ODOO_DB_USER`, etc.) are separate: they configure how the **Odoo container** talks to its DB, not the JSON-RPC login above.
+
+### First-time Odoo setup (once per fresh volume)
+
+1. Open **`http://localhost:8069`**.
+2. Use **Create database** (or the Odoo database manager) with name **`sikili_assessment`**, email/login **`admin`**, password **`admin`** (same as `ODOO_*` in `.env`).
+3. Install apps: **Sales** and **Invoicing** (required for customers and sale orders used by this project).
+
+Until this is done, the API may return **`FAILED`** sync statuses or auth-related errors when calling Odoo.
+
+### Using your own Odoo instead
+
+Point **`ODOO_URL`**, **`ODOO_DB`**, **`ODOO_USERNAME`**, and **`ODOO_PASSWORD`** in `.env` at your instance. Ensure the database has **Sales** (and **Invoicing** if you rely on the same flows). The API only speaks **JSON-RPC** to the models documented below.
+
+---
+
 ## Sync status behavior
 
 Each **client** and **order** has `syncStatus` (`PENDING`, `SYNCED`, `FAILED`) and optional `syncError`.
@@ -205,16 +260,18 @@ The frontend **never** calls Odoo directly. Route handlers stay thin; Odoo logic
 
 ---
 
-## Odoo models used
+## Odoo objects used and why
 
-| Odoo model | Use |
+The integration uses standard Odoo models so the behaviour matches what consultants and customers expect in Odoo, without custom modules in **`addons/`** (only **`.gitkeep`** is committed).
+
+| Odoo object | Why this object |
 | --- | --- |
-| `res.partner` | Clients / customers |
-| `product.product` | Find-or-create by name for order lines |
-| `sale.order` | Sale order header, linked to partner |
-| `sale.order.line` | Line with product, qty `1`, `price_unit` = amount |
+| **`res.partner`** | Canonical model for **customers and contacts**. Creating a “client” in the app maps to a customer partner Odoo can reuse across sales, accounting, and CRM. |
+| **`product.product`** | **Sale order lines must reference a product**. The app does not ship a catalog UI; it **searches by exact product name** and **creates** a simple sellable product if none exists, which is enough for the assessment flow. |
+| **`sale.order`** | Standard model for **quotations / sales orders**. Header holds the **customer** (`partner_id`) so the order is visible under the correct partner in Odoo. |
+| **`sale.order.line`** | Represents **what was sold**: one line with **quantity 1** and **`price_unit`** set to the amount entered in the app, plus a line description (`name`) aligned with the product label. |
 
-Rationale detail: `docs/odoo/integration-notes.md`.
+Additional rationale and JSON-RPC context: **`docs/odoo/integration-notes.md`**.
 
 ---
 
@@ -272,16 +329,29 @@ If Odoo is down or rejects a write: **persist** the local row, set **`FAILED`**,
 
 ## Assumptions and simplifications
 
-* No authentication.
-* Minimal product handling (find/create by name only).
-* No retry queue or background worker in v1.
-* Next.js and API images run **`dev`** mode for simplicity and fast iteration.
+* **No authentication** on the app API or web UI; the assessment scope is sync behaviour, not identity.
+* **Single-tenant, local / demo** setup: one Odoo database name (`ODOO_DB`) and one set of API credentials; not multi-company or multi-warehouse.
+* **Synchronous sync only**: each create request completes Odoo work in-line; there is **no job queue**, backoff, or scheduled retries.
+* **Product model**: find-or-create **`product.product`** by **exact name**; no SKU, variants, taxes, pricelists, or stock integration.
+* **Orders**: one **sale order line** per app order; quantity fixed to **1**; amount maps to **`price_unit`** on the line.
+* **UI** is intentionally plain: forms and lists with **sync status** and errors visible; no design system or advanced state libraries.
+* **Docker images** run **`next dev`** and a compiled **Node API** path suited to assessment review, not hardened production images or HTTPS.
+* **`addons/`** is present with **`.gitkeep`** so **`./addons:/mnt/extra-addons`** satisfies Odoo extensibility expectations **without** shipping a custom Odoo module for this scope.
 
 ---
 
 ## What I would improve with more time
 
-Background retries, idempotency keys, reconciliation jobs, structured logging with request IDs, integration tests against Odoo, RBAC, production deploy/monitoring. See also **section 10** in `IMPLEMENTATION_NOTES.md`.
+* **Retries and idempotency**: safe re-drive of failed syncs without duplicating Odoo records.
+* **Background jobs**: queue Odoo calls so HTTP requests stay fast and transient Odoo outages hurt less.
+* **Reconciliation**: periodic compare of local rows vs Odoo for drift detection.
+* **Product domain**: proper catalog sync, SKUs, tax rules, and richer line payloads.
+* **Observability**: structured logs with **request IDs**, metrics, and tracing.
+* **Testing**: automated **integration tests** against Odoo (CI service or container).
+* **Security**: authentication, RBAC, secret rotation, rate limiting on public APIs.
+* **Operations**: production-grade images, health endpoints beyond `/health`, monitoring and alerts.
+
+More detail on trade-offs and process: **`IMPLEMENTATION_NOTES.md`** (especially section 10).
 
 ---
 
