@@ -58,7 +58,7 @@ Use this table to **navigate the repo** quickly:
 | `packages/shared/` | Reserved for shared types/validation (minimal today). |
 | `docker/` | `Dockerfile.api`, `Dockerfile.web`, `api-entrypoint.sh` (migrations + start). |
 | `addons/` | Mounted into Odoo at `/mnt/extra-addons` (placeholder `.gitkeep` until you add custom modules). |
-| `specs/` | Feature specs, ADRs, checklists, commit strategy (see [Documentation layout](#documentation-layout)). |
+| `specs/` | Feature specs, ADRs, commit strategy (see [Documentation layout](#documentation-layout)). |
 | `docs/` | Architecture overview, coding standards, Odoo notes, AI workflow guidance. |
 | `ai-workflow/` | Assessment-required **AI usage** log (`AI_USAGE.md`). |
 | `IMPLEMENTATION_NOTES.md` | **Author narrative**: how the work was approached, researched, and reviewed (summary also in README below). |
@@ -78,7 +78,7 @@ sikili-odoo-sync-assessment/
   docker/                     # Container build + API entrypoint
   addons/                     # Odoo extra-addons (see .gitkeep)
   docs/                       # Conventions, architecture, Odoo, workflow
-  specs/                      # Features, ADRs, DoD, commit strategy
+  specs/                      # Features, ADRs, commit strategy
   ai-workflow/                # AI_USAGE.md
   docker-compose.yml
   .env.example
@@ -321,7 +321,6 @@ These folders are **intentionally kept** and are the canonical place for deeper 
 | **`specs/features/`** | `001`–`005` feature specs (client sync, orders, UI, Docker, errors). |
 | **`specs/decisions/`** | ADRs: `001-monorepo-architecture.md`, `002-docker-full-stack.md`. |
 | **`specs/commits/`** | `commit-strategy.md` — conventional commits and suggested history. |
-| **`specs/checklists/`** | `definition-of-done.md` — submission checklist. |
 | **`ai-workflow/`** | `AI_USAGE.md` only — what AI was used for and what was validated manually. |
 | **`IMPLEMENTATION_NOTES.md`** | Author process and trade-offs (summary above). |
 

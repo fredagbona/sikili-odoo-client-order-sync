@@ -60,7 +60,7 @@ Includes:
 
 ```text
 docs: add project README and architecture notes
-docs: add feature specs and definition of done
+docs: add feature specs and architecture notes
 docs: document AI-assisted development workflow
 ```
 
