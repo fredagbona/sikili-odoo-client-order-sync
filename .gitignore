@@ -1,0 +1,23 @@
+node_modules
+.next
+dist
+build
+.env
+.env.local
+.env.production
+*.log
+
+# Prisma
+packages/database/prisma/dev.db
+packages/database/prisma/dev.db-journal
+
+# Docker
+docker-data
+odoo-data
+postgres-data
+
+# OS
+.DS_Store
+
+# AI screenshots / optional private files
+ai-workflow/screenshots/private
