@@ -240,19 +240,23 @@ cd sikili-odoo-sync-assessment
 cp .env.example .env
 ```
 
-## 3. Start the full stack
+Adjust values only if needed. For **Docker Compose**, keep `DATABASE_URL` pointing at `app-db` and `ODOO_URL` at `http://odoo:8069` as in `.env.example`. The `web` service overrides `API_URL` to `http://api:4000` so Next.js can reach the API during server rendering inside the stack.
+
+## 3. Start the full stack (recommended for reviewers)
 
 ```bash
 docker compose up --build
 ```
 
-This should start:
+This starts:
 
-* Next.js web app
-* Express API
-* PostgreSQL database for the app
-* Odoo
-* PostgreSQL database for Odoo
+* **web** — Next.js on port **3000** (dev server inside the container)
+* **api** — Express on port **4000** (runs `prisma migrate deploy` on startup, then the API)
+* **app-db** — PostgreSQL for the app
+* **odoo** — Odoo 18 on port **8069**
+* **odoo-db** — PostgreSQL for Odoo
+
+The `addons` directory is mounted at `/mnt/extra-addons` in Odoo.
 
 ## 4. Open the app
 
@@ -261,6 +265,29 @@ Web app: http://localhost:3000
 API: http://localhost:4000
 Odoo: http://localhost:8069
 ```
+
+## 5. Alternative: PNPM on the host + Docker for databases only
+
+Useful when developing the API or web with hot reload on your machine:
+
+1. Start databases and Odoo: `docker compose up -d app-db odoo odoo-db`
+2. In `.env`, set `DATABASE_URL=postgresql://app_user:app_password@127.0.0.1:5433/sikili_sync`, `ODOO_URL=http://127.0.0.1:8069`, `API_URL` and `NEXT_PUBLIC_API_URL` to `http://127.0.0.1:4000`.
+3. Apply migrations: `pnpm db:deploy`
+4. Run apps: `pnpm dev`
+
+---
+
+# Sync status behavior
+
+Each **client** and **order** has `syncStatus` (`PENDING`, `SYNCED`, or `FAILED`) and optional `syncError`.
+
+* **SYNCED** — Odoo accepted the write; `odooPartnerId` / `odooOrderId` is stored.
+* **FAILED** — The local row still exists; `syncError` explains what went wrong; API logs contain `[ODOO_PARTNER_SYNC_FAILED]` or `[ODOO_SALE_ORDER_SYNC_FAILED]`.
+* **PENDING** — Short-lived in the current synchronous flow; usually moves to `SYNCED` or `FAILED` in the same request.
+
+Creating a sale order requires the client to already have an **Odoo partner id**; otherwise the API returns **400** and **no order row** is created (validation error, not a sync failure).
+
+Successful **HTTP 201** responses can still carry `syncStatus: FAILED` when the local row was created but Odoo rejected the sync—the UI must read `syncStatus`, not only the status code.
 
 ---
 

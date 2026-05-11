@@ -107,3 +107,26 @@ This file may be updated during development to document:
 * manual fixes applied after generation
 * validation notes
 * trade-offs identified during implementation
+
+---
+
+# 2026-05-11 — Feature 001 (client sync)
+
+* Implemented Prisma `Client` model with `SyncStatus` enum, initial SQL migration (authored via `prisma migrate diff` because Docker was unavailable for `migrate dev` in this environment).
+* Implemented Express `POST /clients` and `GET /clients`, thin routes, `clients.service` orchestration, and isolated Odoo JSON-RPC in `apps/api/src/services/odoo` (`OdooClient` + `createResPartner` for `res.partner`).
+* On Odoo failure, local row is kept, `syncStatus` is `FAILED`, `syncError` is set, and `[ODOO_PARTNER_SYNC_FAILED]` is logged per spec.
+* Next.js home page: simple create form, list with sync status and failed error text; initial list loaded in a server component to satisfy strict React lint rules; client refresh after create uses the browser `NEXT_PUBLIC_API_URL`.
+* Aligned `@prisma/client` and `prisma` to **6.19.3** in `packages/database` and fixed `pnpm-workspace.yaml` `allowBuilds` placeholders so Prisma postinstall scripts run under pnpm 11.
+* Root `pnpm dev` now builds the `database` package first so the API resolves the compiled workspace client.
+* A later iteration added full-stack Docker services for `api` and `web` (see `specs/decisions/002-docker-full-stack.md` and `docker-compose.yml`).
+
+---
+
+# 2026-05-12 — Features 002–005 and Docker (batch)
+
+* **002 Sale orders:** Added Prisma `Order`, `POST/GET /orders`, Odoo `product.product` find-or-create, `sale.order` + `sale.order.line` creation, `[ODOO_SALE_ORDER_SYNC_FAILED]` logging. Validation returns **400** when the client has no Odoo partner (no local order row).
+* **003 Frontend flows:** Added `apps/web/src/lib/api.ts`, split components (`client-form`, `client-list`, `order-form`, `order-list`), and a single-page `Dashboard` with sections, loading copy, success banner, and client selector limited to **SYNCED** clients with a partner id.
+* **004 Docker:** Added `docker/Dockerfile.api`, `docker/Dockerfile.web`, `docker/api-entrypoint.sh` (`prisma migrate deploy` then API), Compose services `api` and `web`, `app-db` healthcheck, `.dockerignore`, and `addons/.gitkeep`.
+* **005 Error handling:** Documented sync semantics in README; Odoo auth failures log `[ODOO_AUTH_FAILED]`; order/client sync failures keep local rows and persist `syncError`; `HttpError` separates validation **400** from sync **201** + `FAILED`.
+* **Decisions:** Recorded ADR `specs/decisions/002-docker-full-stack.md` for the Compose approach.
+* **Git:** Changes were committed in small conventional commits (database → API/lockfile → web → Docker → docs/AI).
