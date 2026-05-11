@@ -4,13 +4,14 @@
   "private": true,
   "description": "Technical assessment: client and sales order sync with Odoo",
   "scripts": {
-    "dev": "pnpm --parallel --filter api --filter web dev",
+    "dev": "pnpm --filter database build && pnpm --parallel --filter api --filter web dev",
     "dev:api": "pnpm --filter api dev",
     "dev:web": "pnpm --filter web dev",
     "db:generate": "pnpm --filter database prisma generate",
     "db:migrate": "pnpm --filter database prisma migrate dev",
+    "db:deploy": "pnpm --filter database exec prisma migrate deploy",
     "lint": "pnpm --filter web lint",
-    "typecheck": "pnpm --recursive exec tsc --noEmit"
+    "typecheck": "pnpm --filter api exec tsc -p tsconfig.json && pnpm --filter database exec tsc -p tsconfig.json && pnpm --filter web exec tsc -p tsconfig.json"
   },
   "engines": {
     "node": ">=20"
