@@ -45,12 +45,13 @@ Use this table to **navigate the repo** quickly:
 | `packages/database/` | Prisma schema, migrations, compiled client export (`prisma/`, `src/index.ts`). |
 | `packages/shared/` | Reserved for shared types/validation (minimal today). |
 | `docker/` | `Dockerfile.api`, `Dockerfile.web`, `api-entrypoint.sh` (migrations + start). |
+| `addons/` | Mounted into Odoo at `/mnt/extra-addons` (placeholder `.gitkeep` until you add custom modules). |
 | `specs/` | Feature specs, ADRs, checklists, commit strategy (see [Documentation layout](#documentation-layout)). |
 | `docs/` | Architecture overview, coding standards, Odoo notes, AI workflow guidance. |
 | `ai-workflow/` | Assessment-required **AI usage** log (`AI_USAGE.md`). |
 | `IMPLEMENTATION_NOTES.md` | **Author narrative**: how the work was approached, researched, and reviewed (summary also in README below). |
 | `.cursor/rules.md` | Cursor / agent constraints used during implementation. |
-| `docker-compose.yml` | Full stack: `web`, `api`, `app-db`, `odoo`, `odoo-db`. Odoo mounts named volume **`odoo_extra_addons`** at **`/mnt/extra-addons`** (no custom modules in-repo). |
+| `docker-compose.yml` | Full stack: `web`, `api`, `app-db`, `odoo`, `odoo-db`. Odoo bind-mounts **`./addons`** → **`/mnt/extra-addons`**. |
 
 ### High-level tree
 
@@ -63,6 +64,7 @@ sikili-odoo-sync-assessment/
     database/                 # Prisma schema, migrations, DB client package
     shared/                   # Optional shared code
   docker/                     # Container build + API entrypoint
+  addons/                     # Odoo extra-addons (see .gitkeep)
   docs/                       # Conventions, architecture, Odoo, workflow
   specs/                      # Features, ADRs, DoD, commit strategy
   ai-workflow/                # AI_USAGE.md
@@ -104,7 +106,7 @@ sikili-odoo-sync-assessment/
    | `web` | 3000 | Next.js (`next dev` in container) |
    | `api` | 4000 | Express; runs `prisma migrate deploy` on startup |
    | `app-db` | 5433→5432 | PostgreSQL for the app |
-   | `odoo` | 8069 | Odoo 18 (`/mnt/extra-addons` = Docker volume `odoo_extra_addons`) |
+   | `odoo` | 8069 | Odoo 18 (`./addons` → `/mnt/extra-addons`) |
    | `odoo-db` | (internal) | PostgreSQL for Odoo |
 
 3. **Odoo first-time setup** (required before sync succeeds)
@@ -248,7 +250,7 @@ These folders are **intentionally kept** and are the canonical place for deeper 
 | **`ai-workflow/`** | `AI_USAGE.md` only — what AI was used for and what was validated manually. |
 | **`IMPLEMENTATION_NOTES.md`** | Author process and trade-offs (summary above). |
 
-An empty **`docs/api/`** placeholder was removed. **`ai-workflow/`** only keeps `AI_USAGE.md` (empty stub folders and a redundant README were removed). **`addons/`** was removed from the repo; Compose mounts a **named volume** at `/mnt/extra-addons` instead. API behavior is described here and in the feature specs.
+An empty **`docs/api/`** placeholder was removed. **`ai-workflow/`** only keeps `AI_USAGE.md` (empty stub folders and a redundant README were removed). The **`addons/`** directory is kept with **`.gitkeep`** so `./addons:/mnt/extra-addons` works in Compose when you have no custom modules yet. API behavior is described here and in the feature specs.
 
 ---
 

@@ -4,7 +4,7 @@
 
 # Implementation note (this repository)
 
-Odoo’s `/mnt/extra-addons` is provided by a **Docker named volume** (`odoo_extra_addons`) in `docker-compose.yml`, because this repo ships **no custom Odoo modules**. If you add local addons, you can switch the compose file to `./addons:/mnt/extra-addons` and commit an `addons/` directory.
+The repo includes **`addons/`** with **`.gitkeep`** so the directory is tracked even before custom Odoo modules exist. **Docker Compose** bind-mounts **`./addons:/mnt/extra-addons`**.
 
 ---
 
@@ -40,7 +40,7 @@ The setup should prioritize clarity and reproducibility over production-grade in
 * Dockerfiles for frontend and backend
 * Odoo container
 * PostgreSQL containers
-* mount for Odoo extra-addons at `/mnt/extra-addons` (named volume or `./addons` bind-mount)
+* mounted Odoo `addons` folder at `/mnt/extra-addons` (`./addons:/mnt/extra-addons`)
 * environment variable support
 * local networking between services
 * reviewer instructions in README
@@ -112,17 +112,35 @@ The Odoo service must:
 
 * connect to its PostgreSQL database
 * expose port `8069`
-* provide **`/mnt/extra-addons`** (bind-mount from `./addons` or a Docker volume—see implementation note above)
+* mount the local **`addons`** folder into:
 
-This path is explicitly expected by the assessment so optional custom addons can be added.
+```text
+/mnt/extra-addons
+```
+
+This is explicitly required by the assessment.
 
 ---
 
-# Addons / extra-addons path
+# Addons folder requirement
 
-The assessment expects Odoo to expose **`/mnt/extra-addons`** so optional custom modules can be added.
+The repository includes:
 
-**This repository:** uses a **named Docker volume** (`odoo_extra_addons` → `/mnt/extra-addons`) because no custom addons are shipped. You may instead keep a repo-root **`addons/`** directory and bind-mount `./addons:/mnt/extra-addons` when you add modules.
+```text
+/addons
+```
+
+with **`.gitkeep`** when no custom module is added yet.
+
+Docker Compose mounts:
+
+```text
+./addons:/mnt/extra-addons
+```
+
+Reason:
+
+The reviewer expects custom addons to be visible in the tree if needed.
 
 ---
 
@@ -349,7 +367,7 @@ The reviewer should not need to guess setup steps.
 * [ ] Odoo is accessible.
 * [ ] Odoo connects to its PostgreSQL database.
 * [ ] App API connects to its PostgreSQL database.
-* [ ] `/mnt/extra-addons` is mounted for Odoo (named volume or `./addons` bind-mount).
+* [ ] `addons` folder is mounted at `/mnt/extra-addons`.
 * [ ] `.env.example` exists and is complete.
 * [ ] README explains Odoo setup clearly.
 * [ ] Reviewer can run the project locally with minimal setup.

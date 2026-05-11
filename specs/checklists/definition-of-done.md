@@ -24,7 +24,7 @@ Before submitting:
 
 - [ ] `.env.example` exists.
 - [ ] Docker Compose starts the project.
-- [ ] Odoo has `/mnt/extra-addons` mounted (Compose uses named volume `odoo_extra_addons`; bind-mount `./addons` is optional if you add custom modules).
+- [ ] Odoo addons folder is mounted at `/mnt/extra-addons` (e.g. `./addons:/mnt/extra-addons` in Compose).
 - [ ] README explains local setup.
 
 ## Documentation
