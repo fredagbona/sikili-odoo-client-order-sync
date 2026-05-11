@@ -5,11 +5,44 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum SyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+}
+
+model Client {
+  id            String     @id @default(cuid())
+  name          String
+  phone         String
+  email         String
+  odooPartnerId Int?
+  syncStatus    SyncStatus @default(PENDING)
+  syncError     String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  orders        Order[]
+}
+
+model Order {
+  id           String     @id @default(cuid())
+  clientId     String
+  client       Client     @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  productName  String
+  amount       Float
+  odooOrderId  Int?
+  syncStatus   SyncStatus @default(PENDING)
+  syncError    String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([clientId])
 }
