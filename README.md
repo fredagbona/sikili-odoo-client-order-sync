@@ -121,11 +121,7 @@ sikili-odoo-sync-assessment/
    | `odoo` | 8069 | Odoo 18 (`./addons` → `/mnt/extra-addons`) |
    | `odoo-db` | (internal) | PostgreSQL for Odoo |
 
-3. **Odoo first-time setup** (required before sync succeeds)
-
-   * Open `http://localhost:8069`
-   * Create database: **`sikili_assessment`**, login **`admin`** / **`admin`** (match `.env`)
-   * Install **Sales** and **Invoicing**
+3. **Odoo first-time setup** (required before sync succeeds) — follow **[First-time Odoo setup](#first-time-odoo-setup)** under [How to connect to Odoo](#how-to-connect-to-odoo): create the database (name and **`admin`** / **`admin`** user to match `.env`), then install **Sales** and **Invoicing** using the Apps UI steps there.
 
 4. **Smoke test**
 
@@ -208,13 +204,35 @@ The API authenticates to Odoo over JSON-RPC using the variables below. **Create 
 
 The Postgres **server** credentials for the `odoo-db` container (`ODOO_DB_HOST`, `ODOO_DB_USER`, etc.) are separate: they configure how the **Odoo container** talks to its DB, not the JSON-RPC login above.
 
-### First-time Odoo setup (once per fresh volume)
+### First-time Odoo setup
 
-1. Open **`http://localhost:8069`**.
-2. Use **Create database** (or the Odoo database manager) with name **`sikili_assessment`**, email/login **`admin`**, password **`admin`** (same as `ODOO_*` in `.env`).
-3. Install apps: **Sales** and **Invoicing** (required for customers and sale orders used by this project).
+Use this after a **fresh** Odoo volume (for example right after `docker compose up` the first time, or after `docker compose down -v`). Same steps apply when you only run **`odoo`** + **`odoo-db`** for local development.
 
-Until this is done, the API may return **`FAILED`** sync statuses or auth-related errors when calling Odoo.
+#### Create the database (match `.env`)
+
+1. Open **`http://localhost:8069`** in your browser.
+2. On the database manager screen, choose **Create database** (or equivalent).
+3. Set **Database name** to **`sikili_assessment`** (must match **`ODOO_DB`** in `.env`).
+4. Set **Email** (and login) and **Password** for the administrator to **`admin`** / **`admin`** (must match **`ODOO_USERNAME`** and **`ODOO_PASSWORD`** in `.env`).
+5. Submit and wait until Odoo finishes provisioning and logs you in.
+
+#### Install **Sales** and **Invoicing** (if not already installed)
+
+These apps provide **customers / partners**, **quotations & sales orders**, and **customer invoices** used by this project’s JSON-RPC calls. On a brand-new database they are usually **not** installed until you add them from **Apps**.
+
+1. **Open Apps** — from the main Odoo screen, open the **app switcher / main menu** (often top-left) and choose **Apps**. If you land on Discuss or another app first, use the menu to reach **Apps**.
+2. **Search** — in the **Apps** screen, use the search bar at the top:
+   * Type **`Sales`** and open the **Sales** application entry.
+   * Click **Activate** or **Install** (wording depends on Odoo build). Wait until the installation finishes (progress may show briefly).
+3. **Install Invoicing** — still under **Apps**, search for **`Invoicing`**:
+   * Open the **Invoicing** application entry and click **Activate** or **Install**.
+   * If you do not see an app named **Invoicing**, search **`Accounting`** and install the main accounting/invoicing application your Odoo edition lists (Community vs Enterprise labels differ; you need customer invoicing capabilities alongside **Sales**).
+4. **Confirm** — in **Apps**, search again for **Sales** and **Invoicing** (or **Accounting**). Each should show as **Installed** / **Active**, not only “Available”.
+5. **Optional check** — open the **Sales** app from the app menu: you should see menus such as **Orders** / **Quotations** without errors. Open **Contacts** (or **Customers**) to confirm partner features are available.
+
+If **Sales** or **Invoicing** stay missing, ensure you are not filtering **Apps** to a subset that hides official apps (try **All** or clear filters), then use **Update Apps List** from the **Apps** menu (⋮ or **Actions**) if Odoo suggests refreshing the catalog.
+
+Until the database exists and these apps are installed, the API may return **`FAILED`** sync statuses or model/access errors when calling Odoo.
 
 ### Using your own Odoo instead
 
