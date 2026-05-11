@@ -1,12 +1,10 @@
 # Sikili Odoo Client & Sales Order Sync Assessment
 
-Technical assessment for Sikili: build a small full-stack application that syncs internal clients and sale orders with Odoo.
+Technical assessment for Sikili: a small full-stack application that syncs internal **clients** and **sale orders** with **Odoo 18** over JSON-RPC, with explicit **sync status** and errors.
 
 ---
 
-# Goal
-
-The application demonstrates the following flow:
+## Goal
 
 ```text
 Create a client in the web app
@@ -19,389 +17,284 @@ Create a sale order for that client
 → store the Odoo order ID locally
 ```
 
-The objective is not to build a large product.
-
-The objective is to show:
-
-* clean architecture
-* working Odoo integration
-* sync status tracking
-* error handling
-* reproducible local setup
+The focus is **reviewable architecture**, **working Odoo integration**, **visible sync state**, and **reproducible Docker setup**—not a large product.
 
 ---
 
-# Tech Stack
+## Tech stack
 
-## Application
-
-* Frontend: Next.js
-* Backend: Node.js / Express.js
-* Language: TypeScript
-* Local database: PostgreSQL
-* ORM: Prisma
-* Odoo integration: JSON-RPC API
-* Runtime: Docker Compose
-
-## Odoo
-
-* Odoo 18
-* PostgreSQL for Odoo
-* Sales module
-* Invoicing module
+| Layer | Choice |
+| --- | --- |
+| Web | Next.js (App Router), TypeScript |
+| API | Express 5, TypeScript |
+| App DB | PostgreSQL + Prisma (`packages/database`) |
+| ERP | Odoo 18 (Sales + Invoicing), JSON-RPC |
+| Orchestration | Docker Compose |
+| Package manager | pnpm workspaces |
 
 ---
 
-# Repository Structure
+## Repository map
+
+Use this table to **navigate the repo** quickly:
+
+| Path | Purpose |
+| --- | --- |
+| `apps/web/` | Next.js UI: dashboard, forms, lists (`src/app/`, `src/components/`, `src/lib/api.ts`). |
+| `apps/api/` | Express API: `src/index.ts`, feature modules under `src/modules/`, Odoo under `src/services/odoo/`. |
+| `packages/database/` | Prisma schema, migrations, compiled client export (`prisma/`, `src/index.ts`). |
+| `packages/shared/` | Reserved for shared types/validation (minimal today). |
+| `docker/` | `Dockerfile.api`, `Dockerfile.web`, `api-entrypoint.sh` (migrations + start). |
+| `addons/` | Mounted into Odoo at `/mnt/extra-addons` (placeholder `.gitkeep`). |
+| `specs/` | Feature specs, ADRs, checklists, commit strategy (see [Documentation layout](#documentation-layout)). |
+| `docs/` | Architecture overview, coding standards, Odoo notes, AI workflow guidance. |
+| `ai-workflow/` | Assessment-required **AI usage** log (`AI_USAGE.md`). |
+| `IMPLEMENTATION_NOTES.md` | **Author narrative**: how the work was approached, researched, and reviewed (summary also in README below). |
+| `.cursor/rules.md` | Cursor / agent constraints used during implementation. |
+| `docker-compose.yml` | Full stack: `web`, `api`, `app-db`, `odoo`, `odoo-db`. |
+
+### High-level tree
 
 ```text
 sikili-odoo-sync-assessment/
   apps/
-    api/                  # Express API
-    web/                  # Next.js frontend
-
+    api/                      # Express + Prisma + Odoo JSON-RPC
+    web/                      # Next.js reviewer UI
   packages/
-    database/             # Prisma schema and generated client
-    shared/               # Shared types and validation schemas
-
-  addons/                 # Mounted into Odoo at /mnt/extra-addons
-
-  docs/
-    architecture/         # Architecture notes
-    api/                  # API documentation
-    odoo/                 # Odoo integration notes
-
-  specs/
-    features/             # Feature specs with definition of done
-    decisions/            # Architecture decision records
-    checklists/           # Quality and review checklists
-
-  ai-workflow/            # AI usage documentation required by the assessment
-
+    database/                 # Prisma schema, migrations, DB client package
+    shared/                   # Optional shared code
+  docker/                     # Container build + API entrypoint
+  addons/                     # Odoo extra-addons mount (see .gitkeep)
+  docs/                       # Conventions, architecture, Odoo, workflow
+  specs/                      # Features, ADRs, DoD, commit strategy
+  ai-workflow/                # AI_USAGE.md
   docker-compose.yml
   .env.example
-  README.md
+  IMPLEMENTATION_NOTES.md     # Detailed process write-up
+  README.md                   # This file
 ```
 
 ---
 
-# Why a Monorepo?
+## How to run the project
 
-I chose a monorepo because this is an assessment project where the reviewer needs to run the full stack locally with a single command.
+### Prerequisites
 
-The frontend and API are still separated into dedicated apps to keep clear technical boundaries, but keeping everything in one repository improves:
+* **Docker** + Docker Compose (recommended path), **or**
+* **Node 20+** and **pnpm** if you run the API/web on the host while databases run in Docker.
 
-* reviewer experience
-* local reproducibility
-* environment consistency
-* shared types and validation
-* Docker Compose orchestration
+### Option A — Full stack with Docker (recommended)
 
-In a real production setup, the frontend, backend, database, and Odoo service could be deployed independently.
+1. **Clone and env**
 
-For this assessment, the priority is local reproducibility and clarity.
+   ```bash
+   git clone <repository-url>
+   cd sikili-odoo-sync-assessment
+   cp .env.example .env
+   ```
+
+   For Compose, keep `DATABASE_URL` pointing at **`app-db`** and `ODOO_URL` at **`http://odoo:8069`** as in `.env.example`. The `web` service sets **`API_URL=http://api:4000`** for Next.js server-side fetches; the browser still uses **`NEXT_PUBLIC_API_URL=http://localhost:4000`**.
+
+2. **Start all services**
+
+   ```bash
+   docker compose up --build
+   ```
+
+   | Service | Port | Role |
+   | --- | ---: | --- |
+   | `web` | 3000 | Next.js (`next dev` in container) |
+   | `api` | 4000 | Express; runs `prisma migrate deploy` on startup |
+   | `app-db` | 5433→5432 | PostgreSQL for the app |
+   | `odoo` | 8069 | Odoo 18 |
+   | `odoo-db` | (internal) | PostgreSQL for Odoo |
+
+3. **Odoo first-time setup** (required before sync succeeds)
+
+   * Open `http://localhost:8069`
+   * Create database: **`sikili_assessment`**, login **`admin`** / **`admin`** (match `.env`)
+   * Install **Sales** and **Invoicing**
+
+4. **Smoke test**
+
+   * Web: `http://localhost:3000` — create client → create order for a **SYNCED** client.
+   * API: `http://localhost:4000/health`
+   * Odoo: confirm **Contacts** and **Sales** records.
+
+5. **Clean slate rerun**
+
+   ```bash
+   docker compose down -v
+   docker compose up --build
+   ```
+
+   Recreate the Odoo database and modules (step 3).
+
+### Option B — PNPM on host + Docker for Postgres / Odoo only
+
+1. Start data layer: `docker compose up -d app-db odoo odoo-db`
+
+2. Adjust **`.env`** for host networking, for example:
+
+   * `DATABASE_URL=postgresql://app_user:app_password@127.0.0.1:5433/sikili_sync`
+   * `ODOO_URL=http://127.0.0.1:8069`
+   * `API_URL=http://127.0.0.1:4000`
+   * `NEXT_PUBLIC_API_URL=http://127.0.0.1:4000`
+
+3. **Migrations** (once DB is up):
+
+   ```bash
+   pnpm db:deploy
+   ```
+
+4. **Run API + web** (builds `database` first):
+
+   ```bash
+   pnpm dev
+   ```
+
+### Root scripts (reference)
+
+| Script | Meaning |
+| --- | --- |
+| `pnpm dev` | Build `database`, then run `api` + `web` in parallel. |
+| `pnpm dev:api` / `pnpm dev:web` | Run a single app. |
+| `pnpm db:deploy` | Apply Prisma migrations (`migrate deploy`). |
+| `pnpm db:migrate` | Interactive migrate dev (local schema work). |
+| `pnpm db:generate` | Regenerate Prisma client. |
+| `pnpm lint` | ESLint on `web`. |
+| `pnpm typecheck` | `tsc --noEmit` for `api`, `database`, `web`. |
 
 ---
 
-# Architecture Overview
+## Sync status behavior
+
+Each **client** and **order** has `syncStatus` (`PENDING`, `SYNCED`, `FAILED`) and optional `syncError`.
+
+* **SYNCED** — Odoo accepted the write; `odooPartnerId` / `odooOrderId` is stored.
+* **FAILED** — Local row kept; `syncError` explains the failure; logs include `[ODOO_PARTNER_SYNC_FAILED]` or `[ODOO_SALE_ORDER_SYNC_FAILED]`; auth issues log `[ODOO_AUTH_FAILED]` (passwords are never logged).
+* **PENDING** — Usually very short-lived in the synchronous flow.
+
+**Validation vs sync:** Creating an order requires a client with an Odoo partner id. If not, the API returns **400** and **no order row** is created. An **HTTP 201** can still return `syncStatus: FAILED` if the local row was saved but Odoo rejected the sync—the UI must read `syncStatus`, not only the status code.
+
+---
+
+## Architecture overview
 
 ```text
 Next.js Web App
   ↓ HTTP
 Express API
   ↓
-Local PostgreSQL Database
+Local PostgreSQL (Prisma)
   ↓
-Odoo Service Layer
+Odoo service layer (apps/api/src/services/odoo)
   ↓ JSON-RPC
 Odoo 18
 ```
 
-The backend owns the synchronization logic.
-
-The frontend never talks directly to Odoo.
-
-All Odoo API calls are isolated in a dedicated service layer under:
-
-```text
-apps/api/src/services/odoo
-```
-
-This keeps route handlers simple and makes Odoo integration easier to test, debug, and replace.
+The frontend **never** calls Odoo directly. Route handlers stay thin; Odoo logic lives under `apps/api/src/services/odoo/`.
 
 ---
 
-# Local Data Model
+## Local data model (Prisma)
 
-Minimum expected local model:
+**Client:** name, phone, email, `odooPartnerId`, `syncStatus`, `syncError`, timestamps.
 
-## clients
-
-Stores internal clients and their Odoo sync reference.
-
-### Important fields
-
-* name
-* phone
-* email
-* odoo_partner_id
-* sync_status
-* sync_error
-
-## orders
-
-Stores internal sale orders and their Odoo sync reference.
-
-### Important fields
-
-* client_id
-* product_name
-* amount
-* odoo_order_id
-* sync_status
-* sync_error
+**Order:** `clientId`, `productName`, `amount`, `odooOrderId`, `syncStatus`, `syncError`, timestamps; belongs to `Client`.
 
 ---
 
-# Sync Status Strategy
+## Odoo models used
 
-Each entity stores its sync status locally.
+| Odoo model | Use |
+| --- | --- |
+| `res.partner` | Clients / customers |
+| `product.product` | Find-or-create by name for order lines |
+| `sale.order` | Sale order header, linked to partner |
+| `sale.order.line` | Line with product, qty `1`, `price_unit` = amount |
 
-Possible statuses:
-
-```text
-PENDING
-SYNCED
-FAILED
-```
-
-The goal is to avoid silent failures.
-
-If an Odoo API call fails:
-
-* the local record is kept
-* the sync status is marked as FAILED
-* the error message is stored
-* the user sees a clear message
-* logs include enough context to debug the issue
+Rationale detail: `docs/odoo/integration-notes.md`.
 
 ---
 
-# Odoo Objects Used
+## My process (how I took this project)
 
-## res.partner
+The full narrative—including research, manual vs AI work, review checklist, trade-offs, and “what I’d improve next”—is in **[`IMPLEMENTATION_NOTES.md`](./IMPLEMENTATION_NOTES.md)** at the repository root. Below is a short summary of that process.
 
-Used to represent clients.
-
-### Reason
-
-`res.partner` is the standard Odoo model for contacts, customers, and partners.
-
-Since the web app creates clients, this is the most natural mapping.
-
----
-
-## sale.order
-
-Used to represent sale orders.
-
-### Reason
-
-`sale.order` is the standard Odoo model for quotations and sales orders.
-
-The created order is linked to the correct `res.partner`.
+1. **Read the assessment** and split expectations into core delivery (sync flows), engineering rules (DB, isolation, Docker, no secrets in code), and reviewer experience (README, honesty, no over-engineering).
+2. **Define architecture up front**: monorepo for one-clone reproducibility; separate `apps/web` and `apps/api`; Prisma package for schema/migrations; **all Odoo JSON-RPC** behind `apps/api/src/services/odoo`.
+3. **Model Odoo explicitly**: `res.partner` for clients, `sale.order` + `sale.order.line` for orders, `product.product` via simple find-or-create by name (no full catalog UI).
+4. **Sync strategy**: synchronous request path—local row first, then Odoo, then update `SYNCED` / `FAILED` + `syncError`; no background queue in scope.
+5. **Errors**: distinguish **validation** (400, no invalid local rows) from **sync** (201 possible with `FAILED`, row kept). Never drop local data on Odoo failure.
+6. **Specs before bulk coding**: `specs/features/` and `.cursor/rules.md` constrained changes; work landed in **small conventional commits** (`specs/commits/commit-strategy.md`).
+7. **AI as assistant**: Cursor + specs + `docs/` conventions; incremental prompts; manual review against “explain every line” and “matches spec” (see `ai-workflow/AI_USAGE.md`).
 
 ---
 
-## product.product
+## Documentation layout
 
-Used or created when a sale order is created.
+These folders are **intentionally kept** and are the canonical place for deeper detail than this README:
 
-### Reason
+| Location | Contents |
+| --- | --- |
+| **`docs/architecture/`** | `overview.md` — system diagram and principles. |
+| **`docs/conventions/`** | `coding-standards.md` — naming, layering, logging expectations. |
+| **`docs/odoo/`** | `integration-notes.md` — JSON-RPC choice and model mapping. |
+| **`docs/workflow/`** | `ai-assisted-development.md` — how AI output is reviewed. |
+| **`specs/README.md`** | Index to the spec set. |
+| **`specs/features/`** | `001`–`005` feature specs (client sync, orders, UI, Docker, errors). |
+| **`specs/decisions/`** | ADRs: `001-monorepo-architecture.md`, `002-docker-full-stack.md`. |
+| **`specs/commits/`** | `commit-strategy.md` — conventional commits and suggested history. |
+| **`specs/checklists/`** | `definition-of-done.md` — submission checklist. |
+| **`ai-workflow/`** | `AI_USAGE.md` — what AI was used for and what was validated manually. |
+| **`IMPLEMENTATION_NOTES.md`** | Author process and trade-offs (summary above). |
 
-Odoo sale order lines require a product reference.
-
-For simplicity, this project can find or create a product by name when creating an order.
-
----
-
-# How to Run Locally
-
-## 1. Clone the repository
-
-```bash
-git clone <repository-url>
-cd sikili-odoo-sync-assessment
-```
-
-## 2. Create environment file
-
-```bash
-cp .env.example .env
-```
-
-Adjust values only if needed. For **Docker Compose**, keep `DATABASE_URL` pointing at `app-db` and `ODOO_URL` at `http://odoo:8069` as in `.env.example`. The `web` service overrides `API_URL` to `http://api:4000` so Next.js can reach the API during server rendering inside the stack.
-
-## 3. Start the full stack (recommended for reviewers)
-
-```bash
-docker compose up --build
-```
-
-This starts:
-
-* **web** — Next.js on port **3000** (dev server inside the container)
-* **api** — Express on port **4000** (runs `prisma migrate deploy` on startup, then the API)
-* **app-db** — PostgreSQL for the app
-* **odoo** — Odoo 18 on port **8069**
-* **odoo-db** — PostgreSQL for Odoo
-
-The `addons` directory is mounted at `/mnt/extra-addons` in Odoo.
-
-## 4. Open the app
-
-```text
-Web app: http://localhost:3000
-API: http://localhost:4000
-Odoo: http://localhost:8069
-```
-
-## 5. Alternative: PNPM on the host + Docker for databases only
-
-Useful when developing the API or web with hot reload on your machine:
-
-1. Start databases and Odoo: `docker compose up -d app-db odoo odoo-db`
-2. In `.env`, set `DATABASE_URL=postgresql://app_user:app_password@127.0.0.1:5433/sikili_sync`, `ODOO_URL=http://127.0.0.1:8069`, `API_URL` and `NEXT_PUBLIC_API_URL` to `http://127.0.0.1:4000`.
-3. Apply migrations: `pnpm db:deploy`
-4. Run apps: `pnpm dev`
+An empty **`docs/api/`** placeholder was removed; API behavior is described here and in the feature specs.
 
 ---
 
-# Sync status behavior
+## Expected reviewer flow
 
-Each **client** and **order** has `syncStatus` (`PENDING`, `SYNCED`, or `FAILED`) and optional `syncError`.
-
-* **SYNCED** — Odoo accepted the write; `odooPartnerId` / `odooOrderId` is stored.
-* **FAILED** — The local row still exists; `syncError` explains what went wrong; API logs contain `[ODOO_PARTNER_SYNC_FAILED]` or `[ODOO_SALE_ORDER_SYNC_FAILED]`.
-* **PENDING** — Short-lived in the current synchronous flow; usually moves to `SYNCED` or `FAILED` in the same request.
-
-Creating a sale order requires the client to already have an **Odoo partner id**; otherwise the API returns **400** and **no order row** is created (validation error, not a sync failure).
-
-Successful **HTTP 201** responses can still carry `syncStatus: FAILED` when the local row was created but Odoo rejected the sync—the UI must read `syncStatus`, not only the status code.
+1. `docker compose up --build` (with `.env` from `.env.example`).
+2. Complete Odoo database + Sales + Invoicing setup.
+3. Open `http://localhost:3000` — create client → confirm `res.partner`.
+4. Create sale order for a synced client → confirm `sale.order` and partner link in Odoo.
+5. Inspect sync badges / errors in the UI and API logs for failure paths.
 
 ---
 
-# Odoo Setup
+## Error handling (summary)
 
-When Odoo starts for the first time, create a database using the values from `.env`:
-
-```text
-Database: sikili_assessment
-Email/Login: admin
-Password: admin
-```
-
-Then install:
-
-* Sales
-* Invoicing
-
-The backend will use these credentials to call Odoo through JSON-RPC:
-
-```env
-ODOO_URL=http://odoo:8069
-ODOO_DB=sikili_assessment
-ODOO_USERNAME=admin
-ODOO_PASSWORD=admin
-```
+If Odoo is down or rejects a write: **persist** the local row, set **`FAILED`**, store **`syncError`**, **log** with context, **show** the message in the UI.
 
 ---
 
-# Expected Reviewer Flow
+## Assumptions and simplifications
 
-1. Run the project with Docker Compose.
-2. Open the web app.
-3. Create a client.
-4. Confirm that a `res.partner` exists in Odoo.
-5. Create a sale order for that client.
-6. Confirm that a `sale.order` exists in Odoo and is linked to the correct partner.
-7. Check local sync status and logs.
+* No authentication.
+* Minimal product handling (find/create by name only).
+* No retry queue or background worker in v1.
+* Next.js and API images run **`dev`** mode for simplicity and fast iteration.
 
 ---
 
-# Error Handling
+## What I would improve with more time
 
-The application should never silently fail.
-
-If Odoo is unavailable or rejects a request:
-
-* the local record is persisted
-* the sync status is marked as FAILED
-* a clear error is logged
-* the UI displays a meaningful error message
+Background retries, idempotency keys, reconciliation jobs, structured logging with request IDs, integration tests against Odoo, RBAC, production deploy/monitoring. See also **section 10** in `IMPLEMENTATION_NOTES.md`.
 
 ---
 
-# Assumptions and Simplifications
+## AI usage
 
-This assessment intentionally keeps the UI simple.
-
-## Main simplifications
-
-* no authentication layer
-* minimal product management
-* basic sale order creation
-* no retry queue in the first version
-* no complex Odoo customization unless needed
-
-These choices are intentional to keep the assessment focused on the requested flow: client and sale order sync with Odoo.
-
----
-
-# What I Would Improve With More Time
-
-With more time, I would add:
-
-* background job queue for retries
-* idempotency keys for safer sync
-* automatic reconciliation between local DB and Odoo
-* better product catalog synchronization
-* structured logging with request IDs
-* integration tests against a test Odoo instance
-* role-based access control
-* production deployment with monitoring and alerts
-
----
-
-# AI Usage
-
-AI tools were used during this assessment.
-
-The goal was not to blindly generate code, but to:
-
-* speed up exploration
-* validate implementation choices
-* improve documentation
-* brainstorm edge cases
-* structure specifications
-
-Details are documented in:
+AI assisted implementation under explicit rules; decisions and validation notes are in:
 
 ```text
 ai-workflow/AI_USAGE.md
 ```
 
-This file includes:
-
-* what AI was used for
-* what decisions were made manually
-* how generated suggestions were reviewed
-* what was validated through testing
-
 ---
 
-# Deployment
+## Deployment
 
-A deployed version may be provided if available.
-
-The required deliverable remains the repository with a working Docker Compose setup.
+A hosted demo is optional. The required artifact is this repository with a working **`docker compose up --build`** flow.
