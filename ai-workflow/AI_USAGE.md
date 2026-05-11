@@ -126,7 +126,7 @@ This file may be updated during development to document:
 
 * **002 Sale orders:** Added Prisma `Order`, `POST/GET /orders`, Odoo `product.product` find-or-create, `sale.order` + `sale.order.line` creation, `[ODOO_SALE_ORDER_SYNC_FAILED]` logging. Validation returns **400** when the client has no Odoo partner (no local order row).
 * **003 Frontend flows:** Added `apps/web/src/lib/api.ts`, split components (`client-form`, `client-list`, `order-form`, `order-list`), and a single-page `Dashboard` with sections, loading copy, success banner, and client selector limited to **SYNCED** clients with a partner id.
-* **004 Docker:** Added `docker/Dockerfile.api`, `docker/Dockerfile.web`, `docker/api-entrypoint.sh` (`prisma migrate deploy` then API), Compose services `api` and `web`, `app-db` healthcheck, `.dockerignore`, and `addons/.gitkeep`.
+* **004 Docker:** Added `docker/Dockerfile.api`, `docker/Dockerfile.web`, `docker/api-entrypoint.sh` (`prisma migrate deploy` then API), Compose services `api` and `web`, `app-db` healthcheck, `.dockerignore`, and named volume `odoo_extra_addons` for Odoo `/mnt/extra-addons` (later removed empty `ai-workflow/` stub dirs, redundant `ai-workflow/README.md`, and the unused repo `addons/` folder in favor of that volume).
 * **005 Error handling:** Documented sync semantics in README; Odoo auth failures log `[ODOO_AUTH_FAILED]`; order/client sync failures keep local rows and persist `syncError`; `HttpError` separates validation **400** from sync **201** + `FAILED`.
 * **Decisions:** Recorded ADR `specs/decisions/002-docker-full-stack.md` for the Compose approach.
 * **Git:** Changes were committed in small conventional commits (database → API/lockfile → web → Docker → docs/AI).

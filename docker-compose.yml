@@ -39,7 +39,7 @@ services:
       PASSWORD: odoo
     volumes:
       - odoo_data:/var/lib/odoo
-      - ./addons:/mnt/extra-addons
+      - odoo_extra_addons:/mnt/extra-addons
 
   api:
     build:
@@ -75,3 +75,4 @@ volumes:
   app_db_data:
   odoo_db_data:
   odoo_data:
+  odoo_extra_addons:

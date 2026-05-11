@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-The assessment requires a single-command local environment: web, API, app database, Odoo, and Odoo’s database, with `./addons` mounted for Odoo.
+The assessment requires a single-command local environment: web, API, app database, Odoo, and Odoo’s database, with `/mnt/extra-addons` available for Odoo (implemented as a named Docker volume `odoo_extra_addons` so the repo does not need an `addons/` tree unless custom modules are added).
 
 ## Decision
 

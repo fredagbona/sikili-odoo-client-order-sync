@@ -18,6 +18,3 @@ postgres-data
 
 # OS
 .DS_Store
-
-# AI screenshots / optional private files
-ai-workflow/screenshots/private
