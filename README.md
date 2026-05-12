@@ -41,10 +41,9 @@ This README **explicitly** includes everything typically required for submission
 1. [How to run the project locally](#how-to-run-the-project-locally)
 2. [How to connect to Odoo](#how-to-connect-to-odoo)
 3. [Odoo objects used and why](#odoo-objects-used-and-why)
-4. [Assumptions and simplifications](#assumptions-and-simplifications)
-5. [What I would improve with more time](#what-i-would-improve-with-more-time)
-6. [Hosted deployment (fredthedev.com)](#hosted-deployment-fredthedevcom)
-7. [Assessment compliance map](#assessment-compliance-map)
+4. [Assumptions, reviewer flow, errors, roadmap](./IMPLEMENTATION_NOTES.md) — **`IMPLEMENTATION_NOTES.md`** (README defers this detail)
+5. [Hosted deployment (fredthedev.com)](#hosted-deployment-fredthedevcom)
+6. [Assessment compliance map](#assessment-compliance-map)
 
 ---
 
@@ -62,7 +61,7 @@ Quick map from the **Sikili brief** to this repository (physical DB columns for 
 | Local relational model + sync status + Odoo IDs | `packages/database/prisma/schema.prisma`, `packages/database/prisma/migrations/` |
 | Env sample (no secrets in code) | `.env.example` |
 | `docker compose up` stack + Odoo 18 + addons mount `./addons` → `/mnt/extra-addons` | `docker-compose.yml`, `addons/.gitkeep`, `docker/Dockerfile.api`, `docker/Dockerfile.web`, `docker/api-entrypoint.sh` |
-| Run locally, connect to Odoo, objects + rationale, assumptions, improvements | This `README.md` (sections linked in [README contents](#readme-contents-assessment-checklist) above) |
+| Run locally, connect to Odoo, objects + rationale | This `README.md`; assumptions, reviewer walkthrough, error semantics, improvements → [`IMPLEMENTATION_NOTES.md`](./IMPLEMENTATION_NOTES.md) |
 | AI usage narrative + session captures | `ai-workflow/AI_USAGE.md`, `ai-workflow/screenshots/*.png` |
 
 ---
@@ -82,7 +81,7 @@ Use this table to **navigate the repo** quickly:
 | `specs/` | Feature specs, ADRs, commit strategy (see [Documentation layout](#documentation-layout)). |
 | `docs/` | Architecture overview, coding standards, Odoo notes, AI workflow guidance. |
 | `ai-workflow/` | **AI usage** log (`AI_USAGE.md`) and **screenshots** of representative Cursor agent sessions (`screenshots/`). |
-| `IMPLEMENTATION_NOTES.md` | **Author narrative**: how the work was approached, researched, and reviewed (summary also in README below). |
+| `IMPLEMENTATION_NOTES.md` | **Author narrative**: assumptions, reviewer-oriented flow, error-handling summary, trade-offs, and roadmap (README points here instead of duplicating). |
 | `.cursor/rules.md` | Cursor / agent constraints used during implementation. |
 | `docker-compose.yml` | Full stack: `web`, `api`, `app-db`, `odoo`, `odoo-db`. Odoo bind-mounts **`./addons`** → **`/mnt/extra-addons`**. |
 
@@ -345,53 +344,7 @@ These folders are **intentionally kept** and are the canonical place for deeper 
 | **`specs/decisions/`** | ADRs: `001-monorepo-architecture.md`, `002-docker-full-stack.md`. |
 | **`specs/commits/`** | `commit-strategy.md` — conventional commits and suggested history. |
 | **`ai-workflow/`** | `AI_USAGE.md` — what AI was used for and what was validated manually; **`screenshots/`** — representative Cursor agent session captures (indexed in [AI usage](#ai-usage) in this README). |
-| **`IMPLEMENTATION_NOTES.md`** | Author process and trade-offs (summary above). |
-
-An empty **`docs/api/`** placeholder was removed. **`ai-workflow/`** contains **`AI_USAGE.md`** and **`screenshots/`** (session evidence for the assessment’s AI policy). The **`addons/`** directory is kept with **`.gitkeep`** so **`./addons:/mnt/extra-addons`** works in Compose when you have no custom modules yet. API behaviour is described here and in the feature specs.
-
----
-
-## Expected reviewer flow
-
-1. `docker compose up --build` (with `.env` from `.env.example`).
-2. Complete Odoo database + Sales + Invoicing setup.
-3. Open `http://localhost:3000` — create client → confirm `res.partner`.
-4. Create sale order for a synced client → confirm `sale.order` and partner link in Odoo.
-5. Inspect sync badges / errors in the UI and API logs for failure paths.
-
----
-
-## Error handling (summary)
-
-If Odoo is down or rejects a write: **persist** the local row, set **`FAILED`**, store **`syncError`**, **log** with context, **show** the message in the UI.
-
----
-
-## Assumptions and simplifications
-
-* **No authentication** on the app API or web UI; the assessment scope is sync behaviour, not identity.
-* **Single-tenant, local / demo** setup: one Odoo database name (`ODOO_DB`) and one set of API credentials; not multi-company or multi-warehouse.
-* **Synchronous sync only**: each create request completes Odoo work in-line; there is **no job queue**, backoff, or scheduled retries.
-* **Product model**: find-or-create **`product.product`** by **exact name**; no SKU, variants, taxes, pricelists, or stock integration.
-* **Orders**: one **sale order line** per app order; quantity fixed to **1**; amount maps to **`price_unit`** on the line.
-* **UI** is intentionally plain: forms and lists with **sync status** and errors visible; no design system or advanced state libraries.
-* **Docker images** run a **production Next.js build** (`next build` / `next start` in `docker/Dockerfile.web`) and a **Node API** image suited to assessment review; TLS termination and extra hardening are left to your reverse proxy / PaaS.
-* **`addons/`** is present with **`.gitkeep`** so **`./addons:/mnt/extra-addons`** satisfies Odoo extensibility expectations **without** shipping a custom Odoo module for this scope.
-
----
-
-## What I would improve with more time
-
-* **Retries and idempotency**: safe re-drive of failed syncs without duplicating Odoo records.
-* **Background jobs**: queue Odoo calls so HTTP requests stay fast and transient Odoo outages hurt less.
-* **Reconciliation**: periodic compare of local rows vs Odoo for drift detection.
-* **Product domain**: proper catalog sync, SKUs, tax rules, and richer line payloads.
-* **Observability**: structured logs with **request IDs**, metrics, and tracing.
-* **Testing**: automated **integration tests** against Odoo (CI service or container).
-* **Security**: authentication, RBAC, secret rotation, rate limiting on public APIs.
-* **Operations**: production-grade images, health endpoints beyond `/health`, monitoring and alerts.
-
-More detail on trade-offs and process: **`IMPLEMENTATION_NOTES.md`** (especially section 10).
+| **`IMPLEMENTATION_NOTES.md`** | Author narrative: assumptions, reviewer flow, errors, roadmap (see file; not duplicated in this README). |
 
 ---
 
@@ -413,6 +366,8 @@ The assessment also asks for **evidence of how AI was used** (e.g. screenshots o
 
 Open the linked files in the repo (or on GitHub) to view the full screenshots.
 
+---
+
 ## Deployment
 
 A hosted demo is optional. The required artifact is this repository with a working **`docker compose up --build`** flow.
@@ -425,7 +380,7 @@ This author runs the stack behind a reverse proxy (e.g. **Coolify**) on **`fredt
 | --- | --- | --- |
 | **Web app** (Next.js) | [https://sikili.fredthedev.com](https://sikili.fredthedev.com) | Dashboard: create clients and orders; browser calls the **public API** below. |
 | **App API** (Express) | [https://sikili-api.fredthedev.com](https://sikili-api.fredthedev.com) | [Health check](https://sikili-api.fredthedev.com/health), `GET/POST /clients`, `GET/POST /orders`. |
-| **Odoo 18** | *Assign in your PaaS* | In Compose the API uses **`ODOO_URL=http://odoo:8069`** on the internal network. If you expose Odoo to the browser, give the `odoo` service its own HTTPS URL and open **Apps** / **Contacts** / **Sales** there as in [First-time Odoo setup](#first-time-odoo-setup). |
+| **Odoo 18 (browser)** | [https://sikili-odoo.fredthedev.com/](https://sikili-odoo.fredthedev.com/) | **Production** instance: one-time setup is already done (**Sales** + **Invoicing** installed). Sign in with **`admin`** / **`admin`** (same as `.env.example` JSON-RPC credentials) to verify **Contacts** and **Sales** orders created from the app. |
 
 **Environment (high level)** — set these for the **same** Compose project so SSR, browser, and CORS line up:
 
@@ -434,9 +389,9 @@ This author runs the stack behind a reverse proxy (e.g. **Coolify**) on **`fredt
 | `NEXT_PUBLIC_API_URL` | **`web` build args + runtime** | `https://sikili-api.fredthedev.com` |
 | `API_URL` | **`web` only** (server-side fetch) | `http://api:4000` (Compose service name) |
 | `WEB_ORIGIN` | **`api`** (CORS; required for browser `POST`) | `https://sikili.fredthedev.com` |
-| `ODOO_URL` | **`api`** | `http://odoo:8069` |
+| `ODOO_URL` | **`api`** | `http://odoo:8069` (Compose service; JSON-RPC from the API container). The public Odoo UI is only for browsing—see the **Odoo 18** row above. |
 | `DATABASE_URL` | **`api`** | `postgresql://…@app-db:5432/sikili_sync` |
 
 After changing `NEXT_PUBLIC_API_URL`, **rebuild the `web` image** so the client bundle embeds the correct API origin. After changing `WEB_ORIGIN`, restart the **`api`** service and confirm logs show `[CORS] allowed origins:` including your web URL.
 
-**Smoke test on the hosted URLs:** open the [web app](https://sikili.fredthedev.com) → create a client → confirm **SYNCED** (or read the error text) → create an order for that client. Use the [API health](https://sikili-api.fredthedev.com/health) endpoint if the API should be checked independently.
+**Smoke test on the hosted URLs:** open the [web app](https://sikili.fredthedev.com) → create a client → confirm **SYNCED** (or read the error text) → create an order for that client. Confirm records in [Odoo](https://sikili-odoo.fredthedev.com/) (**`admin`** / **`admin`**). Use the [API health](https://sikili-api.fredthedev.com/health) endpoint if the API should be checked independently.
