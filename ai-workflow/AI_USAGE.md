@@ -4,6 +4,12 @@ This file documents how AI tools were used during the assessment.
 
 The objective was not to blindly generate code, but to accelerate implementation while keeping architecture, technical decisions, and engineering ownership fully manual.
 
+**Session evidence (screenshots):** representative **Cursor agent** exchanges live in **`ai-workflow/screenshots/`** — see the [AI usage](#ai-usage) section in the root **`README.md`** for an index table and links. The same files are referenced below for convenience:
+
+* [`screenshots/01-initial-codebase-review.png`](./screenshots/01-initial-codebase-review.png) — initial codebase read / project understanding.
+* [`screenshots/02-readme-structure-and-process.png`](./screenshots/02-readme-structure-and-process.png) — README, process, and repo structure cleanup.
+* [`screenshots/03-odoo-sales-invoicing-readme.png`](./screenshots/03-odoo-sales-invoicing-readme.png) — Odoo **Sales** / **Invoicing** setup steps in README.
+
 ---
 
 # Engineering Ownership

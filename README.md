@@ -63,7 +63,7 @@ Quick map from the **Sikili brief** to this repository (physical DB columns for 
 | Env sample (no secrets in code) | `.env.example` |
 | `docker compose up` stack + Odoo 18 + addons mount `./addons` → `/mnt/extra-addons` | `docker-compose.yml`, `addons/.gitkeep`, `docker/Dockerfile.api`, `docker/Dockerfile.web`, `docker/api-entrypoint.sh` |
 | Run locally, connect to Odoo, objects + rationale, assumptions, improvements | This `README.md` (sections linked in [README contents](#readme-contents-assessment-checklist) above) |
-| AI usage narrative | `ai-workflow/AI_USAGE.md` |
+| AI usage narrative + session captures | `ai-workflow/AI_USAGE.md`, `ai-workflow/screenshots/*.png` |
 
 ---
 
@@ -81,7 +81,7 @@ Use this table to **navigate the repo** quickly:
 | `addons/` | Mounted into Odoo at `/mnt/extra-addons` (placeholder `.gitkeep` until you add custom modules). |
 | `specs/` | Feature specs, ADRs, commit strategy (see [Documentation layout](#documentation-layout)). |
 | `docs/` | Architecture overview, coding standards, Odoo notes, AI workflow guidance. |
-| `ai-workflow/` | Assessment-required **AI usage** log (`AI_USAGE.md`). |
+| `ai-workflow/` | **AI usage** log (`AI_USAGE.md`) and **screenshots** of representative Cursor agent sessions (`screenshots/`). |
 | `IMPLEMENTATION_NOTES.md` | **Author narrative**: how the work was approached, researched, and reviewed (summary also in README below). |
 | `.cursor/rules.md` | Cursor / agent constraints used during implementation. |
 | `docker-compose.yml` | Full stack: `web`, `api`, `app-db`, `odoo`, `odoo-db`. Odoo bind-mounts **`./addons`** → **`/mnt/extra-addons`**. |
@@ -100,7 +100,9 @@ sikili-odoo-sync-assessment/
   addons/                     # Odoo extra-addons (see .gitkeep)
   docs/                       # Conventions, architecture, Odoo, workflow
   specs/                      # Features, ADRs, commit strategy
-  ai-workflow/                # AI_USAGE.md
+  ai-workflow/
+    AI_USAGE.md
+    screenshots/            # Key Cursor agent exchanges (indexed under “AI usage” in README)
   docker-compose.yml
   .env.example
   IMPLEMENTATION_NOTES.md     # Detailed process write-up
@@ -342,10 +344,10 @@ These folders are **intentionally kept** and are the canonical place for deeper 
 | **`specs/features/`** | `001`–`005` feature specs (client sync, orders, UI, Docker, errors). |
 | **`specs/decisions/`** | ADRs: `001-monorepo-architecture.md`, `002-docker-full-stack.md`. |
 | **`specs/commits/`** | `commit-strategy.md` — conventional commits and suggested history. |
-| **`ai-workflow/`** | `AI_USAGE.md` only — what AI was used for and what was validated manually. |
+| **`ai-workflow/`** | `AI_USAGE.md` — what AI was used for and what was validated manually; **`screenshots/`** — representative Cursor agent session captures (indexed in [AI usage](#ai-usage) in this README). |
 | **`IMPLEMENTATION_NOTES.md`** | Author process and trade-offs (summary above). |
 
-An empty **`docs/api/`** placeholder was removed. **`ai-workflow/`** only keeps `AI_USAGE.md` (empty stub folders and a redundant README were removed). The **`addons/`** directory is kept with **`.gitkeep`** so `./addons:/mnt/extra-addons` works in Compose when you have no custom modules yet. API behavior is described here and in the feature specs.
+An empty **`docs/api/`** placeholder was removed. **`ai-workflow/`** contains **`AI_USAGE.md`** and **`screenshots/`** (session evidence for the assessment’s AI policy). The **`addons/`** directory is kept with **`.gitkeep`** so **`./addons:/mnt/extra-addons`** works in Compose when you have no custom modules yet. API behaviour is described here and in the feature specs.
 
 ---
 
@@ -401,7 +403,15 @@ AI assisted implementation under explicit rules; decisions and validation notes 
 ai-workflow/AI_USAGE.md
 ```
 
----
+The assessment also asks for **evidence of how AI was used** (e.g. screenshots or exports). These **Cursor agent** captures are stored under **`ai-workflow/screenshots/`** and summarized below (same order as filenames).
+
+| # | File | What it shows |
+| --- | --- | --- |
+| 1 | [`ai-workflow/screenshots/01-initial-codebase-review.png`](./ai-workflow/screenshots/01-initial-codebase-review.png) | Early **codebase review**: prompt to read the repo and explain project intent, structure, collaboration rules, and documentation—agent exploration and summary. |
+| 2 | [`ai-workflow/screenshots/02-readme-structure-and-process.png`](./ai-workflow/screenshots/02-readme-structure-and-process.png) | **README / repo hygiene**: integrating `IMPLEMENTATION_NOTES.md`, improving run and navigation docs, pruning unused `docs/` / `specs/` paths—multi-step agent work with review. |
+| 3 | [`ai-workflow/screenshots/03-odoo-sales-invoicing-readme.png`](./ai-workflow/screenshots/03-odoo-sales-invoicing-readme.png) | **Odoo reviewer setup**: expanding README with **Sales** and **Invoicing** install steps and cross-links so a reviewer can finish Odoo before testing sync. |
+
+Open the linked files in the repo (or on GitHub) to view the full screenshots.
 
 ## Deployment
 
