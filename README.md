@@ -43,6 +43,7 @@ This README **explicitly** includes everything typically required for submission
 3. [Odoo objects used and why](#odoo-objects-used-and-why)
 4. [Assumptions and simplifications](#assumptions-and-simplifications)
 5. [What I would improve with more time](#what-i-would-improve-with-more-time)
+6. [Hosted deployment (fredthedev.com)](#hosted-deployment-fredthedevcom)
 
 ---
 
@@ -352,7 +353,7 @@ If Odoo is down or rejects a write: **persist** the local row, set **`FAILED`**,
 * **Product model**: find-or-create **`product.product`** by **exact name**; no SKU, variants, taxes, pricelists, or stock integration.
 * **Orders**: one **sale order line** per app order; quantity fixed to **1**; amount maps to **`price_unit`** on the line.
 * **UI** is intentionally plain: forms and lists with **sync status** and errors visible; no design system or advanced state libraries.
-* **Docker images** run **`next dev`** and a compiled **Node API** path suited to assessment review, not hardened production images or HTTPS.
+* **Docker images** run a **production Next.js build** (`next build` / `next start` in `docker/Dockerfile.web`) and a **Node API** image suited to assessment review; TLS termination and extra hardening are left to your reverse proxy / PaaS.
 * **`addons/`** is present with **`.gitkeep`** so **`./addons:/mnt/extra-addons`** satisfies Odoo extensibility expectations **without** shipping a custom Odoo module for this scope.
 
 ---
@@ -385,3 +386,27 @@ ai-workflow/AI_USAGE.md
 ## Deployment
 
 A hosted demo is optional. The required artifact is this repository with a working **`docker compose up --build`** flow.
+
+### Hosted deployment (fredthedev.com)
+
+This author runs the stack behind a reverse proxy (e.g. **Coolify**) on **`fredthedev.com`**. Public entry points:
+
+| Service | URL | Notes |
+| --- | --- | --- |
+| **Web app** (Next.js) | [https://sikili.fredthedev.com](https://sikili.fredthedev.com) | Dashboard: create clients and orders; browser calls the **public API** below. |
+| **App API** (Express) | [https://sikili-api.fredthedev.com](https://sikili-api.fredthedev.com) | [Health check](https://sikili-api.fredthedev.com/health), `GET/POST /clients`, `GET/POST /orders`. |
+| **Odoo 18** | *Assign in your PaaS* | In Compose the API uses **`ODOO_URL=http://odoo:8069`** on the internal network. If you expose Odoo to the browser, give the `odoo` service its own HTTPS URL and open **Apps** / **Contacts** / **Sales** there as in [First-time Odoo setup](#first-time-odoo-setup). |
+
+**Environment (high level)** — set these for the **same** Compose project so SSR, browser, and CORS line up:
+
+| Variable | Where | Example (this deployment) |
+| --- | --- | --- |
+| `NEXT_PUBLIC_API_URL` | **`web` build args + runtime** | `https://sikili-api.fredthedev.com` |
+| `API_URL` | **`web` only** (server-side fetch) | `http://api:4000` (Compose service name) |
+| `WEB_ORIGIN` | **`api`** (CORS; required for browser `POST`) | `https://sikili.fredthedev.com` |
+| `ODOO_URL` | **`api`** | `http://odoo:8069` |
+| `DATABASE_URL` | **`api`** | `postgresql://…@app-db:5432/sikili_sync` |
+
+After changing `NEXT_PUBLIC_API_URL`, **rebuild the `web` image** so the client bundle embeds the correct API origin. After changing `WEB_ORIGIN`, restart the **`api`** service and confirm logs show `[CORS] allowed origins:` including your web URL.
+
+**Smoke test on the hosted URLs:** open the [web app](https://sikili.fredthedev.com) → create a client → confirm **SYNCED** (or read the error text) → create an order for that client. Use the [API health](https://sikili-api.fredthedev.com/health) endpoint if the API should be checked independently.
