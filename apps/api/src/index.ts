@@ -8,6 +8,26 @@ import { isHttpError } from "./lib/http-error.js";
 import { clientsRouter } from "./modules/clients/clients.routes.js";
 import { ordersRouter } from "./modules/orders/orders.routes.js";
 
+const defaultBrowserOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+];
+
+function corsAllowedOrigins(): string | string[] {
+  const raw = env.WEB_ORIGIN?.trim();
+  if (!raw) return defaultBrowserOrigins;
+  const parts = raw.split(",").map((s) => s.trim()).filter(Boolean);
+  if (parts.length === 0) return defaultBrowserOrigins;
+  if (parts.length === 1) return parts[0]!;
+  return parts;
+}
+
+const corsOrigin = corsAllowedOrigins();
+console.log(
+  "[CORS] allowed origins:",
+  Array.isArray(corsOrigin) ? corsOrigin.join(", ") : corsOrigin,
+);
+
 const app = express();
 
 app.use((req, res, next) => {
@@ -21,11 +41,7 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
-app.use(
-  cors({
-    origin: env.WEB_ORIGIN ?? ["http://localhost:3000", "http://127.0.0.1:3000"],
-  }),
-);
+app.use(cors({ origin: corsOrigin }));
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true });

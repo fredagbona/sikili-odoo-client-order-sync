@@ -105,7 +105,7 @@ sikili-odoo-sync-assessment/
    cp .env.example .env
    ```
 
-   For Compose, keep `DATABASE_URL` pointing at **`app-db`** and `ODOO_URL` at **`http://odoo:8069`** as in `.env.example`. The `web` service sets **`API_URL=http://api:4000`** for Next.js server-side fetches; the browser still uses **`NEXT_PUBLIC_API_URL=http://localhost:4000`**.
+   For Compose, keep `DATABASE_URL` pointing at **`app-db`** and `ODOO_URL` at **`http://odoo:8069`** as in `.env.example`. The `web` service sets **`API_URL=http://api:4000`** for Next.js server-side fetches. The browser uses **`NEXT_PUBLIC_API_URL`** from your environment (defaults to **`http://127.0.0.1:4000`** for local port mapping). For a public deploy, set it to your **HTTPS API URL** and **rebuild** the `web` image so it is baked into the client bundle.
 
 2. **Start all services**
 
@@ -115,7 +115,7 @@ sikili-odoo-sync-assessment/
 
    | Service | Port | Role |
    | --- | ---: | --- |
-   | `web` | 3000 | Next.js (`next dev` in container) |
+   | `web` | 3000 | Next.js (`next build` + `next start` in container) |
    | `api` | 4000 | Express; runs `prisma migrate deploy` on startup |
    | `app-db` | 5433→5432 | PostgreSQL for the app |
    | `odoo` | 8069 | Odoo 18 (`./addons` → `/mnt/extra-addons`) |

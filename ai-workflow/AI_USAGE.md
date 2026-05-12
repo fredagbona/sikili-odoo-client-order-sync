@@ -130,3 +130,41 @@ This file may be updated during development to document:
 * **005 Error handling:** Documented sync semantics in README; Odoo auth failures log `[ODOO_AUTH_FAILED]`; order/client sync failures keep local rows and persist `syncError`; `HttpError` separates validation **400** from sync **201** + `FAILED`.
 * **Decisions:** Recorded ADR `specs/decisions/002-docker-full-stack.md` for the Compose approach.
 * **Git:** Changes were committed in small conventional commits (database → API/lockfile → web → Docker → docs/AI).
+
+---
+
+# Disabling Cursor commit / PR attribution
+
+To stop Cursor from appending `Co-authored-by: Cursor <…>` (or similar) to commits created from the agent UI:
+
+1. Open **Cursor Settings** (Command Palette → “Cursor Settings” or **Cursor → Settings → Cursor Settings**).
+2. Go to **Agents** → **Attribution** (wording may vary slightly by version).
+3. Turn **off** **Commit attribution** (and **PR attribution** if you do not want trailers on pull requests).
+4. Fully **quit and restart Cursor** if trailers still appear.
+
+If you use the **Cursor CLI** for agents, set commit attribution off in `~/.cursor/cli-config.json`, for example:
+
+```json
+{
+  "commitAttribution": false,
+  "prAttribution": false
+}
+```
+
+The repo’s `.cursor/rules.md` also instructs the AI not to add those trailers.
+
+**Note:** Commits created from the **Chat agent’s terminal** may still get a `Co-authored-by` line injected by Cursor even when attribution is off in settings. In that case, commit from **Terminal.app** / **iTerm** (outside the agent), or replace the tip commit with `git commit-tree` (same tree and parent, new message) and `git reset --hard` to the new hash so the trailer never enters the object database.
+
+---
+
+# 2026-05-11 — Hosted deploy (Coolify) fixes (AI-assisted)
+
+* **Symptom:** API logs showed only **`GET /clients`** / **`GET /orders`** (SSR from Next) and no **`POST`** when creating records from the public site; browser traffic was misrouted or blocked by CORS.
+* **Cause:** `docker-compose.yml` could **override** **`NEXT_PUBLIC_API_URL`** with a localhost URL, so the browser never called the public API; separately, **`WEB_ORIGIN`** must be set on the **`api`** service for CORS on mutating requests.
+* **Changes:** `NEXT_PUBLIC_API_URL` is driven by **environment + build args**; **`docker/Dockerfile.web`** uses **`next build`** / **`next start`** with **`ARG NEXT_PUBLIC_API_URL`**; API CORS accepts **comma-separated** **`WEB_ORIGIN`** and logs **`[CORS] allowed origins:`** at startup; **`apps/web/next.config.ts`** supports optional **`ALLOWED_DEV_ORIGINS`** for dev behind a custom host; **README** and **`.env.example`** document public API URL and CORS for production.
+
+---
+
+# Git hygiene — removing historical `Co-authored-by` trailers
+
+`Co-authored-by: Cursor …` lines were removed from **all** commit messages on **`main`** using **`git filter-branch`** with a **`sed`** message filter, backup refs cleaned up, and **`git push --force-with-lease origin main`**. Local clones should **`git fetch`** and reset to the rewritten branch if they had the old history.

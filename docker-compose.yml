@@ -62,14 +62,19 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.web
+      args:
+        # Must match public API URL in the browser (Coolify / HTTPS). Do not hardcode localhost here.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://127.0.0.1:4000}
     container_name: sikili_web
     ports:
       - "${WEB_PORT:-3000}:3000"
     env_file:
       - .env
     environment:
+      # Server-side SSR fetches from the API container on the Compose network.
       API_URL: http://api:4000
-      NEXT_PUBLIC_API_URL: http://localhost:4000
+      # Browser must call your public API; never override with localhost in production.
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://127.0.0.1:4000}
     depends_on:
       - api
 

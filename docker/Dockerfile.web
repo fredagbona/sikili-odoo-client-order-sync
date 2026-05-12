@@ -11,7 +11,14 @@ RUN pnpm install --frozen-lockfile --filter web...
 
 WORKDIR /app/apps/web
 
+# Baked into the client bundle at build time (must be the browser-reachable API URL).
+ARG NEXT_PUBLIC_API_URL=http://127.0.0.1:4000
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 ENV NEXT_TELEMETRY_DISABLED=1
+
+RUN pnpm exec next build
+
 EXPOSE 3000
 
-CMD ["pnpm", "exec", "next", "dev", "--hostname", "0.0.0.0", "--port", "3000"]
+CMD ["pnpm", "exec", "next", "start", "--hostname", "0.0.0.0", "--port", "3000"]
