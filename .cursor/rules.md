@@ -149,7 +149,6 @@ Use small commits.
 
 Each commit should represent one logical change.
 
-Do **not** add `Co-authored-by:`, `Made-with: Cursor`, or any other Cursor or AI attribution trailers to commit messages or PR descriptions unless the author explicitly asks for them.
 
 Use conventional commit style:
 
