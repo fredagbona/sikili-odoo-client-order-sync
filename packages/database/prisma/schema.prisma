@@ -24,7 +24,7 @@ model Client {
   name          String
   phone         String
   email         String
-  odooPartnerId Int?
+  odooPartnerId Int? @map("odoo_partner_id")
   syncStatus    SyncStatus @default(PENDING)
   syncError     String?
   createdAt     DateTime   @default(now())
@@ -38,7 +38,7 @@ model Order {
   client       Client     @relation(fields: [clientId], references: [id], onDelete: Restrict)
   productName  String
   amount       Float
-  odooOrderId  Int?
+  odooOrderId  Int? @map("odoo_order_id")
   syncStatus   SyncStatus @default(PENDING)
   syncError    String?
   createdAt    DateTime   @default(now())

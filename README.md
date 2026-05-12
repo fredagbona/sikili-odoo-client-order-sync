@@ -44,6 +44,26 @@ This README **explicitly** includes everything typically required for submission
 4. [Assumptions and simplifications](#assumptions-and-simplifications)
 5. [What I would improve with more time](#what-i-would-improve-with-more-time)
 6. [Hosted deployment (fredthedev.com)](#hosted-deployment-fredthedevcom)
+7. [Assessment compliance map](#assessment-compliance-map)
+
+---
+
+## Assessment compliance map
+
+Quick map from the **Sikili brief** to this repository (physical DB columns for Odoo IDs are `odoo_partner_id` / `odoo_order_id`; Prisma and JSON still use `odooPartnerId` / `odooOrderId`).
+
+| Brief item | Where |
+| --- | --- |
+| Web: create client (name, phone, email), list clients | `apps/web/src/components/client-form.tsx`, `client-list.tsx`, `apps/web/src/app/page.tsx` |
+| Web: create sale order (product name, amount) for a client | `apps/web/src/components/order-form.tsx`, `order-list.tsx` |
+| Browser → API | `apps/web/src/lib/api.ts` |
+| Odoo JSON-RPC (no calls from routes) | `apps/api/src/services/odoo/` (`odoo.client.ts`, `odoo.partner.service.ts`, `odoo.sale-order.service.ts`, …) |
+| HTTP routes (thin) + orchestration | `apps/api/src/modules/clients/`, `apps/api/src/modules/orders/` |
+| Local relational model + sync status + Odoo IDs | `packages/database/prisma/schema.prisma`, `packages/database/prisma/migrations/` |
+| Env sample (no secrets in code) | `.env.example` |
+| `docker compose up` stack + Odoo 18 + addons mount `./addons` → `/mnt/extra-addons` | `docker-compose.yml`, `addons/.gitkeep`, `docker/Dockerfile.api`, `docker/Dockerfile.web`, `docker/api-entrypoint.sh` |
+| Run locally, connect to Odoo, objects + rationale, assumptions, improvements | This `README.md` (sections linked in [README contents](#readme-contents-assessment-checklist) above) |
+| AI usage narrative | `ai-workflow/AI_USAGE.md` |
 
 ---
 
@@ -273,9 +293,9 @@ The frontend **never** calls Odoo directly. Route handlers stay thin; Odoo logic
 
 ## Local data model (Prisma)
 
-**Client:** name, phone, email, `odooPartnerId`, `syncStatus`, `syncError`, timestamps.
+**Client:** name, phone, email, `odooPartnerId` (DB column **`odoo_partner_id`**), `syncStatus`, `syncError`, timestamps.
 
-**Order:** `clientId`, `productName`, `amount`, `odooOrderId`, `syncStatus`, `syncError`, timestamps; belongs to `Client`.
+**Order:** `clientId`, `productName`, `amount`, `odooOrderId` (DB column **`odoo_order_id`**), `syncStatus`, `syncError`, timestamps; belongs to `Client`.
 
 ---
 
