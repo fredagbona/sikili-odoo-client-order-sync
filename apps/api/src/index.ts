@@ -10,6 +10,16 @@ import { ordersRouter } from "./modules/orders/orders.routes.js";
 
 const app = express();
 
+app.use((req, res, next) => {
+  const started = Date.now();
+  res.on("finish", () => {
+    console.log(
+      `[HTTP] ${req.method} ${req.originalUrl} ${res.statusCode} ${Date.now() - started}ms`,
+    );
+  });
+  next();
+});
+
 app.use(express.json());
 app.use(
   cors({

@@ -55,6 +55,8 @@ services:
     depends_on:
       app-db:
         condition: service_healthy
+      odoo:
+        condition: service_started
 
   web:
     build:
